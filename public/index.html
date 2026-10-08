@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Products</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef1f4;
+    --panel: #ffffff;
+    --ink: #14202b;
+    --muted: #5d6b79;
+    --line: #d3dae1;
+    --accent: #0e7c66;
+    --accent-ink: #ffffff;
+    --danger: #b3261e;
+    --warn-bg: #fdecc8;
+    --warn-ink: #6b4500;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; margin: 0; line-height: 1.1; }
+  .summary { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
+
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 9px 16px; font-weight: 600; }
+  button:hover { border-color: var(--ink); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.primary:hover { filter: brightness(0.92); }
+  button.danger { color: var(--danger); }
+  button.small { padding: 5px 10px; font-size: 0.85rem; }
+  :focus-visible { outline: 3px solid #1a73e8; outline-offset: 2px; }
+
+  .toolbar { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  input, select, textarea {
+    font: inherit; color: inherit; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; width: 100%;
+  }
+  .toolbar input { flex: 1 1 240px; width: auto; }
+  .toolbar select { flex: 0 0 200px; width: auto; }
+
+  .table-box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 0.85rem; color: var(--muted); font-weight: 700; background: #f8fafb; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pname { font-weight: 700; }
+  .pdesc { color: var(--muted); font-size: 0.88rem; max-width: 44ch; }
+  .stock-low { display: inline-block; background: var(--warn-bg); color: var(--warn-ink); border-radius: 6px; padding: 1px 8px; font-weight: 700; }
+  .actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+  .state { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .state strong { display: block; color: var(--ink); font-size: 1.05rem; margin-bottom: 4px; }
+
+  dialog { border: 0; border-radius: 12px; padding: 0; width: min(480px, 92vw); box-shadow: 0 20px 60px rgba(20,32,43,.3); }
+  dialog::backdrop { background: rgba(20,32,43,.5); }
+  form { padding: 24px; display: grid; gap: 14px; }
+  form h2 { margin: 0; font-size: 1.3rem; letter-spacing: -0.01em; }
+  label { display: grid; gap: 4px; font-weight: 600; font-size: 0.9rem; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .error { color: var(--danger); font-weight: 600; font-size: 0.9rem; min-height: 1.2em; }
+
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Products</h1>
+      <div class="summary" id="summary">Loading…</div>
+    </div>
+    <button class="primary" id="addBtn">Add product</button>
+  </header>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Search by name or description" aria-label="Search products">
+    <select id="categoryFilter" aria-label="Filter by category"><option value="">All categories</option></select>
+  </div>
+
+  <div class="table-box">
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th class="num">Price</th>
+          <th class="num">In stock</th>
+          <th><span class="sr-only" style="position:absolute;left:-9999px">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="state" class="state" hidden></div>
+  </div>
+</div>
+
+<dialog id="dialog">
+  <form id="form" method="dialog" novalidate>
+    <h2 id="dialogTitle">Add product</h2>
+    <label>Name <input id="f_name" required maxlength="120"></label>
+    <div class="row">
+      <label>Price <input id="f_price" type="number" step="0.01" min="0" required></label>
+      <label>Stock <input id="f_stock" type="number" step="1" min="0" value="0"></label>
+    </div>
+    <label>Category <input id="f_category" list="categories" maxlength="60"></label>
+    <datalist id="categories"></datalist>
+    <label>Description <textarea id="f_description" rows="3" maxlength="500"></textarea></label>
+    <div class="error" id="formError" role="alert"></div>
+    <div class="form-actions">
+      <button type="button" id="cancelBtn">Cancel</button>
+      <button type="submit" class="primary" id="saveBtn">Save product</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<script>
+  // ====== CONFIG ======
+  // Paste your API key here. It must match API_KEY in the .env file.
+  const API_KEY = "pk_9b8e64c599a9e46a343c1c73aa09cd44cda1265440059ba2";
+  // Same server serves this page, so a relative path works. For a separate
+  // frontend host, use e.g. "http://localhost:3000/api"
+  const API_URL = "/api";
+  // =====================
+
+  const $ = (id) => document.getElementById(id);
+  let products = [];
+  let editingId = null;
+
+  async function api(path, options = {}) {
+    const res = await fetch(API_URL + path, {
+      ...options,
+      headers: { "Content-Type": "application/json", "x-api-key": API_KEY, ...(options.headers || {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  }
+
+  const money = (n) => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  function showState(title, text) {
+    const s = $("state");
+    s.hidden = !title;
+    s.innerHTML = title ? `<strong>${esc(title)}</strong>${esc(text)}` : "";
+  }
+
+  async function load() {
+    try {
+      products = await api("/products");
+      render();
+    } catch (e) {
+      $("rows").innerHTML = "";
+      $("summary").textContent = "Could not load products";
+      showState("Could not load products", e.message);
+    }
+  }
+
+  function render() {
+    const q = $("search").value.trim().toLowerCase();
+    const cat = $("categoryFilter").value;
+
+    // category filter + datalist options
+    const cats = [...new Set(products.map((p) => p.category).filter(Boolean))].sort();
+    $("categoryFilter").innerHTML =
+      `<option value="">All categories</option>` + cats.map((c) => `<option ${c === cat ? "selected" : ""}>${esc(c)}</option>`).join("");
+    $("categories").innerHTML = cats.map((c) => `<option value="${esc(c)}">`).join("");
+
+    const list = products.filter(
+      (p) =>
+        (!cat || p.category === cat) &&
+        (!q || p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q))
+    );
+
+    const totalStock = products.reduce((n, p) => n + (p.stock || 0), 0);
+    $("summary").textContent = `${products.length} product${products.length === 1 ? "" : "s"}, ${totalStock} units in stock`;
+
+    $("rows").innerHTML = list
+      .map(
+        (p) => `
+      <tr>
+        <td><div class="pname">${esc(p.name)}</div>${p.description ? `<div class="pdesc">${esc(p.description)}</div>` : ""}</td>
+        <td>${esc(p.category) || "&mdash;"}</td>
+        <td class="num">${money(p.price)}</td>
+        <td class="num">${p.stock <= 5 ? `<span class="stock-low">${p.stock}</span>` : p.stock}</td>
+        <td><div class="actions">
+          <button class="small" data-edit="${p.id}">Edit</button>
+          <button class="small danger" data-del="${p.id}">Delete</button>
+        </div></td>
+      </tr>`
+      )
+      .join("");
+
+    if (!products.length) showState("No products yet", "Select Add product to create your first one.");
+    else if (!list.length) showState("No matches", "Try a different search or category.");
+    else showState("", "");
+  }
+
+  function openForm(p) {
+    editingId = p ? p.id : null;
+    $("dialogTitle").textContent = p ? "Edit product" : "Add product";
+    $("f_name").value = p?.name ?? "";
+    $("f_price").value = p?.price ?? "";
+    $("f_stock").value = p?.stock ?? 0;
+    $("f_category").value = p?.category ?? "";
+    $("f_description").value = p?.description ?? "";
+    $("formError").textContent = "";
+    $("dialog").showModal();
+    $("f_name").focus();
+  }
+
+  $("addBtn").onclick = () => openForm(null);
+  $("cancelBtn").onclick = () => $("dialog").close();
+  $("search").oninput = render;
+  $("categoryFilter").onchange = render;
+
+  $("rows").onclick = async (e) => {
+    const editId = e.target.dataset.edit;
+    const delId = e.target.dataset.del;
+    if (editId) openForm(products.find((p) => p.id === editId));
+    if (delId) {
+      const p = products.find((x) => x.id === delId);
+      if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+      try {
+        await api(`/products/${delId}`, { method: "DELETE" });
+        toast("Deleted");
+        await load();
+      } catch (err) { toast(err.message); }
+    }
+  };
+
+  $("form").onsubmit = async (e) => {
+    e.preventDefault();
+    const body = {
+      name: $("f_name").value,
+      price: parseFloat($("f_price").value),
+      stock: parseInt($("f_stock").value || "0", 10),
+      category: $("f_category").value,
+      description: $("f_description").value,
+    };
+    $("saveBtn").disabled = true;
+    try {
+      if (editingId) await api(`/products/${editingId}`, { method: "PUT", body: JSON.stringify(body) });
+      else await api("/products", { method: "POST", body: JSON.stringify(body) });
+      $("dialog").close();
+      toast(editingId ? "Saved" : "Product added");
+      await load();
+    } catch (err) {
+      $("formError").textContent = err.message;
+    } finally {
+      $("saveBtn").disabled = false;
+    }
+  };
+
+  load();
+</script>
+</body>
+</html>

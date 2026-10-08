@@ -1,0 +1,27 @@
+{
+  "name": "product_server2",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/kadan7310-a11y/product_server2#readme",
+  "bugs": {
+    "url": "https://github.com/kadan7310-a11y/product_server2/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kadan7310-a11y/product_server2.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "start":"nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.6",
+    "express": "^5.2.1",
+    "mongoose": "^9.11.1",
+    "nodemon": "^3.1.14"
+  }
+}
